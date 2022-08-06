@@ -63,7 +63,7 @@
         label: "测试3",
         key: "???",
         render(row) {
-            return cny(code)
+            return cny(row.code)
         }
     }
 ]
