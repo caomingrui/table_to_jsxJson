@@ -19,7 +19,7 @@ let vueStr = `
               <th>味数超过20的处方数</th>
               <th>味数超过25的处方数</th>
               <th>总味数</th>
-              <th>{{ $t('amount') }}</th>
+              <th width="100px">{{ $t('amount') }}</th>
             </tr>
             <tr v-for="row of tableData">
               <td>{{row.doctorName}}</td>
@@ -28,8 +28,10 @@ let vueStr = `
               <td>{{row.totalPriceLt30}}</td>
               <td>{{row.totalPriceLt3040}}</td>
               <td>{{row.totalPriceLt4050}}</td>
-              <td>{{row.totalPriceLt50}}</td>
-              <td>{{row.amount}}</td>
+              <td>{{row.totalPriceLt50 | CNY}}/{{row.kkkk}}</td>
+              <td>
+                <span>{{row.amount}}</span>
+              </td>
               <td>{{row.totalPrice|CNY}}</td>
               <td>{{ row.payPrice | CNY }}</td>
               <td>{{row.registeredOrdCount}}</td>
@@ -39,9 +41,12 @@ let vueStr = `
               <td>{{row.feeDetailOrdCountIt25}}</td>
               <td>
                 <span v-if="row.state === 1">我是正常</span>
-                <span v-if="row.state === 2">我是异常</span>
+                <span v-else-if="row.state === 2">我是异常</span>
+                <div v-else>????</div>
               </td>
-              <td>{{(row.feeDetailOrdCount / row.prescriptionOrdNum).toFixed(2)}}</td>
+              <td>
+                <a href="">{{(row.feeDetailOrdCount / row.prescriptionOrdNum).toFixed(2)}}</a>
+              </td>
             </tr>
           </table>
     </template>

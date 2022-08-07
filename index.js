@@ -1,63 +1,78 @@
-import vueStr from "./vueCode";
-import {match, renderJsx, VueToAst} from "./utool";
+import vueStr from "./static/vueCode";
+import {match, renderJsx, VueToAst} from "./utils/utool";
 import {parse as babelParser} from "@babel/parser";
 import traverse from "@babel/traverse"
 import * as types from "@babel/types";
 import template from "@babel/template";
 import generate from "@babel/generator";
-import getZhName from './zh';
+import getZhName from './static/zh';
+import {getThProps, tdMatchRecord} from "./utils";
 
 
 let AstOption = new VueToAst(vueStr);
 
 let Ast = AstOption.traverse_template({
     'th': (data) => {
+        let thProps = data.props;
+        let props = getThProps(thProps);
         return AstOption.getAstContent(data).map(res => {
             // 匹配国际化
             if (res.type === 4) {
-                return {label: res.content.match(/\(.+?\)/g).map(l => getZhName[l.slice(2, l.length - 2)]).join('')}
+                return {
+                    ...props,
+                    label: res.content.match(/\(.+?\)/g).map(l => getZhName[l.slice(2, l.length - 2)]).join('')
+                }
             }
             return {
+                ...props,
                 label: res.content
             };
         });
     },
     'td': (data, forItem) => {
-        let contentList = AstOption.getAstContent(data);
 
+        let contentList = AstOption.getAstContent(data);
+        // 单个children
         if (contentList.length === 1) {
             return contentList.map(res => {
-                let fn_match = res.content.match(/\(.+?\)/g);
-                let filter_match = res.content.indexOf('|');
-                // 存在方法
-                if (fn_match) {
-                    return {key: '???', renderFn: res.content};
-                }
-                // 存在过滤器
-                else if (filter_match != -1) {
-                    let c = res.content.split('|')
-                    return {
-                        key: forItem ? c[0].trim().split(`${forItem}.`).join("") : c[0].trim(),
-                        renderFn: `${c[1].trim().toLowerCase()}(${c[0].trim()})`
-                    }
-                }
-
-                return {key: forItem ? res.content.split(`${forItem}.`).join("") : res.content};
+                return tdMatchRecord(res, forItem);
             })
         }
         // 会有边界问题
         else if (contentList.length > 1) {
             let judgment;
             return [contentList.reduce((o, item) => {
-                judgment = item.parent.props.find(l => l.name === "if");
-                o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
-                o['render'] = {
-                    ...(o['render'] || {}),
-                    [judgment.exp.content.split(`${forItem}.`).join('')]: {
-                        tag: item.parent.tag,
-                        child: item.parent.children[0].content
+                judgment = item.parent.props?.find(l => ["if", "else", "else-if"].includes(l.name));
+
+                // v-if
+                if (judgment) {
+                    let record = {...(o['render'] || {})};
+                    if (judgment.name !== "else") {
+                        o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
+                        record[judgment.exp.content.split(`${forItem}.`).join('')] = {
+                            tag: item.parent.tag,
+                            child: item.parent.children[0].content
+                        }
+                    } else {
+                        record[""] = {
+                            tag: item.parent.tag,
+                            child: item.parent.children[0].content
+                        }
+                    }
+
+                    o['render'] = record;
+                } else {
+                    o['key'] = forItem;
+                    let {renderFn, originalKey} = tdMatchRecord(item, forItem);
+                    if (item.type === 4) {
+                        o['renderFn'] = `${(o['renderFn'] ? o['renderFn'] + '+' : '')} ${renderFn || originalKey}`;
+                    }
+                    // 字符串
+                    else {
+                        o['renderFn'] = `${o['renderFn']} + '${renderFn || originalKey}'`;
                     }
                 }
+
                 return o;
             }, {})];
         }
@@ -83,7 +98,7 @@ let tableJsonToAst = babelParser(`let column = ${JSON.stringify(Ast)}`, {
  * AST -> transform -> AST render
  */
 traverse(tableJsonToAst, {
-    ObjectProperty(path, state) {
+    ObjectProperty(path) {
         const {key, value} = path.node;
         if (key.value === 'key') {
             Key = value.value
@@ -92,7 +107,7 @@ traverse(tableJsonToAst, {
             const renderAst = renderJsx(value.properties, Key);
             path.replaceInline(renderAst);
         }
-        if (key.value === 'renderFn') {
+        if (key.value === 'renderFn' && value.value) {
             let Ast = types.objectMethod(
                 'method',
                 types.identifier('render'),

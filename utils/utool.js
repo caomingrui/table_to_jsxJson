@@ -24,7 +24,7 @@ export function VueToAst(vueString) {
             // obj
             case "5": {
                 if (!data.content) {
-                    return {...data, parent: record, isProps: !!record.props}
+                    return {...data, parent: record, isProps: record.props ? !!record.length : false}
                 }
 
                 arr = arr.concat(this.getAstContent(data.content, data));
@@ -32,7 +32,7 @@ export function VueToAst(vueString) {
             }
             default: {
                 if (!data.children) {
-                    return {...data, parent: record, isProps: !!record.props}
+                    return {...data, parent: record, isProps: record.props ? !!record.length : false}
                 }
 
                 for (let i = 0; i < data.children.length; i++) {
@@ -47,7 +47,7 @@ export function VueToAst(vueString) {
     /**
      * 生成 table JSON
      * 访问者模式 option 分离不同tag 处理逻辑
-     * @param option
+     * @param option 处理不同tag
      * @returns {{label: *, key: string}|{label: string, key: null}|*[]}
      */
     this.traverse_template = (option = {}) => {
@@ -76,7 +76,7 @@ export function VueToAst(vueString) {
                             content = data.content;
                         }
                         return {
-                            label: "???",
+                            label: forItem,
                             key: content
                         }
                     }
@@ -195,16 +195,19 @@ export function renderJsx(data, name) {
     let arr = [];
     for (let i = 0; i < data.length; i++) {
         let {key, value} = data[i];
-
         // key 'test === 1' ——> ast
-        let keyAst = babelParser(key.value, {sourceType: 'unambiguous',}).program.body[0].expression;
+        let binary = babelParser(key.value, {sourceType: 'unambiguous'}).program.body;
+
+        if (binary.length) {
+            binary = binary[0].expression;
+        }
 
         // 拼装表达式 好像步骤重复了
-        let binary = types.binaryExpression(
-            keyAst.operator, // '==='
-            types.identifier(keyAst.left.name),
-            types.identifier(keyAst.right.value.toString())
-        );
+        // let binary = types.binaryExpression(
+        //     keyAst.operator, // '==='
+        //     types.identifier(keyAst.left.name),
+        //     types.identifier(keyAst.right.value.toString())
+        // );
 
         /**
          * {
@@ -284,11 +287,11 @@ function renderArr(recordList) {
         return types.conditionalExpression(
             recordList[0].binary,
             recordList[0].childAst,
-            types.logicalExpression(
+            recordList[1].binary.length ? types.logicalExpression(
                 '&&',
                 recordList[1].binary,
                 recordList[1].childAst,
-            )
+            ) : recordList[1].childAst
         );
     }
     // 三元 a?1:b?2:c?3:d?:4 -> r(a, r(b, r(c, r(d))))
@@ -310,7 +313,7 @@ function addConditional(arr, index) {
     if (index + 2 >= arr.length) return renderArr(arr.slice(index));
 
     return types.conditionalExpression(
-        arr[index].pd,
+        arr[index].binary,
         arr[index].childAst,
         addConditional(arr, index + 1)
     );
