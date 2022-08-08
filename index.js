@@ -45,22 +45,19 @@ let Ast = AstOption.traverse_template({
             let judgment,
                 // 是否在 if", "else", "else-if 标签内
                 hasRender = false;
-
             return [contentList.reduce((o, item) => {
                 judgment = item.parent.props?.find(l => ["if", "else", "else-if"].includes(l.name));
 
                 // v-if
                 if (judgment) {
-
                     hasRender = true;
 
                     let record = {...(o['render'] || {})};
                     if (judgment.name !== "else") {
                         o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
                         // record[ v-if判断条件 ] = {内容}
-                        record[judgment.exp.content.split(`${forItem}.`).join('')] = {
+                        record[judgment.exp.content] = {
                             tag: item.parent.tag,
-                            // child: item.parent.children[0].content
                             child: templateChildrenRecord(item, forItem)
                         }
                         // v-else
@@ -144,3 +141,21 @@ console.log('END---------END---------END');
 
 AstOption.traverse_script({});
 
+
+function templateIfElseRecord(judgment, record, forItem) {
+
+    if (judgment.name !== "else") {
+        o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
+        // record[ v-if判断条件 ] = {内容}
+        templateChildrenRecord(item, forItem)
+        // v-else
+    } else {
+        record[""] = {
+            tag: item.parent.tag,
+            child: templateChildrenRecord(item, forItem)
+        }
+    }
+
+    o['render'] = record;
+
+}

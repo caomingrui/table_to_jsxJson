@@ -269,13 +269,13 @@ export function renderJsx(data, name) {
     // 返回 render ast
     return types.objectMethod(
         'method',
-        types.identifier('render'),
-        [types.objectPattern([
-            types.objectProperty(
-                types.identifier(name),
-                types.identifier(name)
-            )
-        ])],
+        types.identifier('render'), [types.identifier('row')],
+        // [types.objectPattern([
+        //     types.objectProperty(
+        //         types.identifier(name),
+        //         types.identifier(name)
+        //     )
+        // ])],
         types.blockStatement([types.returnStatement(
             renderArr(arr)
         )]));
