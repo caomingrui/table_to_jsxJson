@@ -1,6 +1,7 @@
 import {parse} from "@vue/compiler-dom";
 import * as types from "@babel/types";
 import {parse as babelParser} from "@babel/parser";
+import traverse from "@babel/traverse";
 
 // 特殊字符
 let markSymbol = ["("];
@@ -154,6 +155,40 @@ export function VueToAst(vueString) {
 
         return dfs(this.template);
     }
+
+
+    this.traverse_script = (option = {}) => {
+        const scriptAst = babelParser(children[1].children[0].content, {
+            sourceType: 'unambiguous',
+        });
+        // console.log(scriptAst);
+
+        traverse(scriptAst, {
+            ImportDeclaration(path) {
+                const {node} = path;
+                const {specifiers, source} = node;
+                let fnList = specifiers.map(({imported}) => ({name: imported.name, url: source.value}));
+            },
+            ObjectMethod(path) {
+                const {key} = path.node
+                // console.log(path.node)
+                switch (key.name.toString()) {
+                    case "data": {
+                        // console.log(path.node.body.body[0].argument.properties, 'data')
+                    }
+                }
+                // if (['data'].includes(key.name)) {
+                // console.log(path.node, '????????');
+                // }
+            },
+            ObjectProperty(path) {
+                // console.log(path.node, '.......')
+            },
+            ExpressionStatement(path) {
+                // console.log(path.node, 'lll')
+            }
+        });
+    }
 }
 
 
@@ -216,9 +251,10 @@ export function renderJsx(data, name) {
             }
          */
         let valueAst;
-        // 枚举 对象每项
+        // 枚举 对象每项 | 当前局限字符串
         for (let j = 0; j < value.properties.length; j++) {
             let valueData = value.properties[j]
+
             valueAst = renderValue(valueData, valueAst);
         }
         // 生成jsx ast

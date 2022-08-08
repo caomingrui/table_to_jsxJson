@@ -6,7 +6,7 @@ import * as types from "@babel/types";
 import template from "@babel/template";
 import generate from "@babel/generator";
 import getZhName from './static/zh';
-import {getThProps, tdMatchRecord} from "./utils";
+import {getThProps, tdMatchRecord, templateChildrenRecord} from "./utils";
 
 
 let AstOption = new VueToAst(vueStr);
@@ -35,33 +35,45 @@ let Ast = AstOption.traverse_template({
         // 单个children
         if (contentList.length === 1) {
             return contentList.map(res => {
-                return tdMatchRecord(res, forItem);
+                let {originalKey, ...arg} = tdMatchRecord(res, forItem);
+                return arg;
             })
         }
         // 会有边界问题
         else if (contentList.length > 1) {
-            let judgment;
+
+            let judgment,
+                // 是否在 if", "else", "else-if 标签内
+                hasRender = false;
+
             return [contentList.reduce((o, item) => {
                 judgment = item.parent.props?.find(l => ["if", "else", "else-if"].includes(l.name));
 
                 // v-if
                 if (judgment) {
+
+                    hasRender = true;
+
                     let record = {...(o['render'] || {})};
                     if (judgment.name !== "else") {
                         o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
+                        // record[ v-if判断条件 ] = {内容}
                         record[judgment.exp.content.split(`${forItem}.`).join('')] = {
                             tag: item.parent.tag,
-                            child: item.parent.children[0].content
+                            // child: item.parent.children[0].content
+                            child: templateChildrenRecord(item, forItem)
                         }
+                        // v-else
                     } else {
                         record[""] = {
                             tag: item.parent.tag,
-                            child: item.parent.children[0].content
+                            child: templateChildrenRecord(item, forItem)
                         }
                     }
 
                     o['render'] = record;
-                } else {
+                    // 非if", "else", "else-if 子标签
+                } else if (!hasRender) {
                     o['key'] = forItem;
                     let {renderFn, originalKey} = tdMatchRecord(item, forItem);
                     if (item.type === 4) {
@@ -129,4 +141,6 @@ console.log('start---------start---------start');
 console.log(code);
 console.log('END---------END---------END');
 
+
+AstOption.traverse_script({});
 

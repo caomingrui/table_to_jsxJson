@@ -1,5 +1,5 @@
 /**
- * 处理th 内模板{{  }}
+ * 处理模板{{  }}
  * @param res
  * @param forItem
  * @returns {{key, renderFn: *}|{key: string, renderFn: string}|{key: (string|*), renderFn: (string|*)}}
@@ -9,7 +9,10 @@ export function tdMatchRecord(res, forItem) {
     let filter_match = res.content.indexOf('|');
     // 存在方法
     if (fn_match) {
-        return {key: forItem, renderFn: res.content};
+        return {
+            key: forItem,
+            renderFn: res.content
+        };
     }
     // 存在过滤器
     else if (filter_match !== -1) {
@@ -40,4 +43,27 @@ export function getThProps(thProps = []) {
         obj[item.name] = item.value.content;
         return obj;
     }, {});
+}
+
+
+/**
+ * 处理多children | 暂时不支持多标签嵌套
+ * @param record
+ * @param forItem
+ * @returns {null}
+ */
+export function templateChildrenRecord(record, forItem) {
+    let val = null;
+
+    for (let i = 0; i < record.parent?.children?.length; i++) {
+        let {type, content} = record.parent.children[i];
+        // 存在模板
+        if (type === 5) {
+            const {renderFn, key} = tdMatchRecord(content);
+            val = `${val || ""}{${renderFn || key}}`;
+        } else {
+            val = `${val || ""}${content}`
+        }
+    }
+    return val;
 }

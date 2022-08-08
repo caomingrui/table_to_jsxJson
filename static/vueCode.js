@@ -40,7 +40,7 @@ let vueStr = `
               <td>{{row.feeDetailOrdCountIt20}}</td>
               <td>{{row.feeDetailOrdCountIt25}}</td>
               <td>
-                <span v-if="row.state === 1">我是正常</span>
+                <span v-if="row.state === 1">我是正常 {{row.state | CNY}}</span>
                 <span v-else-if="row.state === 2">我是异常</span>
                 <div v-else>????</div>
               </td>
@@ -57,7 +57,17 @@ let vueStr = `
     export default {
       data () {
         return {
-          greeting: "Hello"
+          greeting: "Hello",
+          query: {
+              pageSize: 10,
+              page: 1,
+              dateRange: [],
+              medicalDisease: undefined,
+              searchKey: undefined,
+              searchValue: undefined,
+              hospitalId: undefined,
+              commentState: undefined
+          }
         };
       },
       method: {
