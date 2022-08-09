@@ -311,10 +311,11 @@ function renderValue({key, value}, oldData = {}) {
 function renderArr(recordList) {
     // 最后俩组 && | -> test == 1 && div
     if (recordList.length <= 2) {
+        console.log(recordList)
         return types.conditionalExpression(
             recordList[0].binary,
             recordList[0].childAst,
-            recordList[1].binary.length ? types.logicalExpression(
+            recordList[1].binary ? types.logicalExpression(
                 '&&',
                 recordList[1].binary,
                 recordList[1].childAst,
