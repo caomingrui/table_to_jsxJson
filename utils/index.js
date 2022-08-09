@@ -1,3 +1,6 @@
+import getZhName from "../static/zh";
+import {match} from "./utool";
+
 /**
  * 处理模板{{  }}
  * @param res
@@ -9,6 +12,14 @@ export function tdMatchRecord(res, forItem) {
     let filter_match = res.content.indexOf('|');
     // 存在方法
     if (fn_match) {
+        // 国际
+        if (res.content.includes('$t(')) {
+            return {
+                key: forItem,
+                renderFn: "'" + res.content.match(/\(.+?\)/g).map(l => getZhName[l.slice(2, l.length - 2)]).join('') + "'"
+            }
+        }
+
         return {
             key: forItem,
             renderFn: res.content
@@ -66,4 +77,56 @@ export function templateChildrenRecord(record, forItem) {
         }
     }
     return val;
+}
+
+
+/**
+ * 获取children 转义的Object
+ * @param list
+ * @param forItem
+ * @returns {*}
+ */
+export function getChildrenRecord(list, forItem) {
+    let judgment,
+        // 是否在 if", "else", "else-if 标签内
+        hasRender = false;
+    return list.reduce((o, item) => {
+        judgment = item.parent.props?.find(l => ["if", "else", "else-if"].includes(l.name));
+
+        // v-if
+        if (judgment) {
+            hasRender = true;
+
+            let record = {...(o['render'] || {})};
+            if (judgment.name !== "else") {
+                o['key'] = match(judgment.exp.content.split(`${forItem}.`)[1]);
+                // record[ v-if判断条件 ] = {内容}
+                record[judgment.exp.content] = {
+                    tag: item.parent.tag,
+                    child: templateChildrenRecord(item, forItem)
+                }
+                // v-else
+            } else {
+                record[""] = {
+                    tag: item.parent.tag,
+                    child: templateChildrenRecord(item, forItem)
+                }
+            }
+
+            o['render'] = record;
+            // 非if", "else", "else-if 子标签
+        } else if (!hasRender) {
+            o['key'] = forItem;
+            let {renderFn, originalKey} = tdMatchRecord(item, forItem);
+            if (item.type === 4) {
+                o['renderFn'] = `${(o['renderFn'] ? o['renderFn'] + '+' : '')} ${renderFn || originalKey}`;
+            }
+            // 字符串
+            else {
+                o['renderFn'] = `${o['renderFn']} + '${renderFn || originalKey}'`;
+            }
+        }
+
+        return o;
+    }, {});
 }

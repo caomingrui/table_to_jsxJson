@@ -4,7 +4,7 @@ import {parse as babelParser} from "@babel/parser";
 import traverse from "@babel/traverse";
 
 // 特殊字符
-let markSymbol = ["("];
+let markSymbol = ["(", ")", ",", " "];
 
 export function VueToAst(vueString) {
     const {children} = parse(vueString);
@@ -58,7 +58,6 @@ export function VueToAst(vueString) {
          * @param tagName
          * @param preData
          * @param forItem v-for="(item) in data" 中的 item
-         * @param index
          * @returns {{label: *, key: string}|null|*[]|{label: string, key: null}}
          */
         const dfs = (data, tagName = null, preData = null, forItem = null) => {
@@ -133,7 +132,8 @@ export function VueToAst(vueString) {
                         if (childRecord.props.length) {
                             childRecord.props.forEach((item) => {
                                 if (item.name === "for") {
-                                    forItem = item.exp.content.split(" ").filter(l => l && !markSymbol.includes(l))[0];
+                                    // forItem = item.exp.content.split(" ").filter(l => l && !markSymbol.includes(l))[0];
+                                    forItem = getTableItemKey(item.exp.content)
                                 }
                             });
                         }
@@ -192,7 +192,7 @@ export function VueToAst(vueString) {
 }
 
 
-export function match(str) {
+export function match(str = "") {
     let strList = ['=', '<', '>', '!', '&'];
     let val = "";
     for (let i = 0; i < str.length; i++) {
@@ -353,4 +353,26 @@ function addConditional(arr, index) {
         arr[index].childAst,
         addConditional(arr, index + 1)
     );
+}
+
+
+/**
+ * 获取 v-for（item, index） in tableData 的 item
+ * @param str
+ * @returns {string}
+ */
+function getTableItemKey(str = "") {
+    let s = "";
+    for (let i = 0; i < str.length; i++) {
+        let da = str[i];
+        if (markSymbol.includes(da)) {
+            if (s.length) {
+                return s;
+            }
+        } else {
+            s += da;
+        }
+    }
+
+    return s;
 }
