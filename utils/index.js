@@ -92,7 +92,6 @@ export function getChildrenRecord(list, forItem) {
         hasRender = false;
     return list.reduce((o, item) => {
         judgment = item.parent.props?.find(l => ["if", "else", "else-if"].includes(l.name));
-
         // v-if
         if (judgment) {
             hasRender = true;
@@ -129,4 +128,16 @@ export function getChildrenRecord(list, forItem) {
 
         return o;
     }, {});
+}
+
+
+/**
+ * 获取国际化1配置
+ * @param code
+ * @returns {string|*}
+ */
+export function getZhString(code = "'-'") {
+    let val = getZhName[code.slice(2, code.length - 2)];
+    if (val) return val;
+    return code;
 }

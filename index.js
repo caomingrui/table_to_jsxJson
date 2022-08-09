@@ -9,7 +9,7 @@ import getZhName from './static/zh';
 import {getChildrenRecord, getThProps} from "./utils";
 
 
-let AstOption = new VueToAst(vueStr);
+let AstOption = new VueToAst(vueStr), tableItem = null;
 
 let Ast = AstOption.traverse_template({
     'th': (data) => {
@@ -30,11 +30,13 @@ let Ast = AstOption.traverse_template({
         });
     },
     'td': (data, forItem) => {
+        tableItem = forItem;
         let contentList = AstOption.getAstContent(data);
+        console.log(contentList[0].parent.props, 'oooooooooooooooo')
         // 单个children
         if (contentList.length === 1) {
             return contentList.map(res => {
-                return getChildrenRecord([res], forItem)
+                return getChildrenRecord([res], forItem);
             })
         }
         // 会有边界问题
@@ -69,14 +71,14 @@ traverse(tableJsonToAst, {
             Key = value.value
         }
         if (key.value === 'render' && value.properties.length) {
-            const renderAst = renderJsx(value.properties, Key);
+            const renderAst = renderJsx(value.properties, tableItem);
             path.replaceInline(renderAst);
         }
         if (key.value === 'renderFn' && value.value) {
             let Ast = types.objectMethod(
                 'method',
                 types.identifier('render'),
-                [types.identifier('row')],
+                [types.identifier(tableItem)],
                 types.blockStatement([types.returnStatement(
                     template.ast(`${value.value}`).expression
                 )]));

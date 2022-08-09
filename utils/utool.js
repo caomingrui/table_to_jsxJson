@@ -19,25 +19,31 @@ export function VueToAst(vueString) {
      * @param record
      * @returns {(*&{parent, isProps: (boolean)})|*[]}
      */
-    this.getAstContent = (data, record) => {
+    this.getAstContent = (data, record = {}) => {
         let arr = [];
         switch (data.type.toString()) {
             // obj
             case "5": {
                 if (!data.content) {
-                    return {...data, parent: record, isProps: record.props ? !!record.length : false}
-                }
 
-                arr = arr.concat(this.getAstContent(data.content, data));
+                    return {...data, parent: record, isProps: record.props ? !!record.props.length : false}
+                }
+                // 很蠢待改
+                let preData = data;
+                if (record.props && record.props.length) preData = record;
+                arr = arr.concat(this.getAstContent(data.content, preData));
                 break;
             }
             default: {
                 if (!data.children) {
-                    return {...data, parent: record, isProps: record.props ? !!record.length : false}
+                    return {...data, parent: record, isProps: record.props ? !!record.props.length : false}
                 }
 
                 for (let i = 0; i < data.children.length; i++) {
-                    arr = arr.concat(this.getAstContent(data.children[i], data));
+                    // 很蠢待改
+                    let preData = data;
+                    if (record.props && record.props.length) preData = record;
+                    arr = arr.concat(this.getAstContent(data.children[i], preData));
                 }
             }
         }
@@ -132,7 +138,6 @@ export function VueToAst(vueString) {
                         if (childRecord.props.length) {
                             childRecord.props.forEach((item) => {
                                 if (item.name === "for") {
-                                    // forItem = item.exp.content.split(" ").filter(l => l && !markSymbol.includes(l))[0];
                                     forItem = getTableItemKey(item.exp.content)
                                 }
                             });
@@ -167,7 +172,7 @@ export function VueToAst(vueString) {
             ImportDeclaration(path) {
                 const {node} = path;
                 const {specifiers, source} = node;
-                let fnList = specifiers.map(({imported}) => ({name: imported.name, url: source.value}));
+                // let fnList = specifiers.map(({imported}) => ({name: imported.name, url: source.value}));
             },
             ObjectMethod(path) {
                 const {key} = path.node
@@ -237,13 +242,6 @@ export function renderJsx(data, name) {
             binary = binary[0].expression;
         }
 
-        // 拼装表达式 好像步骤重复了
-        // let binary = types.binaryExpression(
-        //     keyAst.operator, // '==='
-        //     types.identifier(keyAst.left.name),
-        //     types.identifier(keyAst.right.value.toString())
-        // );
-
         /**
          * {
                 tag: 'div',
@@ -254,7 +252,6 @@ export function renderJsx(data, name) {
         // 枚举 对象每项 | 当前局限字符串
         for (let j = 0; j < value.properties.length; j++) {
             let valueData = value.properties[j]
-
             valueAst = renderValue(valueData, valueAst);
         }
         // 生成jsx ast
@@ -269,7 +266,7 @@ export function renderJsx(data, name) {
     // 返回 render ast
     return types.objectMethod(
         'method',
-        types.identifier('render'), [types.identifier('row')],
+        types.identifier('render'), [types.identifier(name)],
         // [types.objectPattern([
         //     types.objectProperty(
         //         types.identifier(name),
@@ -280,12 +277,6 @@ export function renderJsx(data, name) {
             renderArr(arr)
         )]));
 }
-
-// type ObjToJsxAst = {
-//     openTag: JSXOpeningElement,
-//     closeTag: JSXClosingElement,
-//     childAst: JSXText[]
-// }
 
 /**
  *
@@ -305,7 +296,7 @@ function renderValue({key, value}, oldData = {}) {
         }
         case "child": {
             // 标签内容
-            obj.childAst = [types.jsxText(value.value)];
+            obj.childAst = [types.jsxText(value.value || "-")];
             break;
         }
     }

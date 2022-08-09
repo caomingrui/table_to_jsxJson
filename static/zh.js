@@ -1,5 +1,6 @@
 // 模拟国际化文件
 export default {
     amount: '测试',
-    medicalRecord: '厕所'
+    medicalRecord: '厕所',
+    operation: "aaa"
 }
