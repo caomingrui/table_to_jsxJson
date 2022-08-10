@@ -94,8 +94,10 @@ export function VueToAst(vueString) {
 
 
             let list = preData || [];
-            for (let i = 0; i < data.children?.length; i++) {
-                let childRecord = data.children[i], calcData = {};
+            // 过滤注释 | 当前type 3
+            let child = data.children?.filter(l => l.type !== 3);
+            for (let i = 0; i < child.length; i++) {
+                let childRecord = child[i], calcData = {};
 
                 switch (childRecord.tag) {
                     case "th": {
@@ -107,13 +109,14 @@ export function VueToAst(vueString) {
                         if (!thData) {
                             calcData = dfs(childRecord, childRecord.tag, forItem);
                         }
-                        list = list.concat(calcData)
+                        list = list.concat(calcData);
                         break
                     }
                     case "td": {
                         if (option.td) {
                             let lineData = (option.td(childRecord, forItem) || [{}])[0];
                             let listIndexInit = {...list[i], ...lineData};
+
                             if (list[i].render) {
                                 if (lineData.render) {
                                     listIndexInit = {
