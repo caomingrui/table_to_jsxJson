@@ -14,7 +14,7 @@ let AstOption = new VueToAst(vueStr), tableItem = null;
 let Ast = AstOption.traverse_template({
     'th': (data) => {
         let thProps = data.props;
-        let props = getThProps(thProps);
+        let props = getThProps(thProps, ['width']);
         return AstOption.getAstContent(data).map(res => {
             // 匹配国际化
             if (res.type === 4) {
@@ -32,7 +32,6 @@ let Ast = AstOption.traverse_template({
     'td': (data, forItem) => {
         tableItem = forItem;
         let contentList = AstOption.getAstContent(data);
-        console.log(contentList[0].parent.props, 'oooooooooooooooo')
         // 单个children
         if (contentList.length === 1) {
             return contentList.map(res => {

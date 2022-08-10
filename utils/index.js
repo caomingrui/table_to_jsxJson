@@ -47,11 +47,14 @@ export function tdMatchRecord(res, forItem) {
 /**
  * 获取th props
  * @param thProps
+ * @param checkProps
  * @returns {*}
  */
-export function getThProps(thProps = []) {
+export function getThProps(thProps = [], checkProps = []) {
     return thProps.reduce((obj, item) => {
-        obj[item.name] = item.value.content;
+        if (checkProps.includes(item.name)) {
+            obj[item.name] = item.value.content;
+        }
         return obj;
     }, {});
 }
@@ -122,10 +125,9 @@ export function getChildrenRecord(list, forItem) {
             }
             // 字符串
             else {
-                o['renderFn'] = `${o['renderFn']} + '${renderFn || originalKey}'`;
+                o['renderFn'] = `${(o['renderFn'] ? o['renderFn'] + '+' : '')} '${renderFn || originalKey}'`;
             }
         }
-
         return o;
     }, {});
 }
